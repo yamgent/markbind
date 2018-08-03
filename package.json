@@ -42,7 +42,7 @@
     "markdown-it-ins": "^2.0.0",
     "markdown-it-linkify-images": "^1.1.0",
     "markdown-it-mark": "^2.0.0",
-    "markdown-it-table-of-contents": "^0.3.2",
+    "markdown-it-table-of-contents": "^0.4.0",
     "markdown-it-task-lists": "^1.4.1",
     "markdown-it-video": "^0.4.0",
     "nunjucks": "^3.0.0",
