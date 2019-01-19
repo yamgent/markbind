@@ -84,6 +84,7 @@ const diffHtml = (expected, actual) => {
     insidePath
     && startsWithClosedPath(fragment);
 
+  console.log(diff);
   diff.forEach((part) => {
     if (isClosedPath(part.value)) {
       insidePath = false;
@@ -95,7 +96,7 @@ const diffHtml = (expected, actual) => {
     }
 
     if (isDiff(part) && !insidePath) {
-      throw new Error(`Diff outside path!: '${part.value}'\n${part}`);
+      throw new Error(`Diff outside path!: '${part.value}`);
     } else if (isDiff(part) && !isPathSeparatorDiff(part.value)) {
       throw new Error(`Diff in path!: '${part.value}'`);
     }
