@@ -20,8 +20,8 @@ _.pick = require('lodash/pick');
 const md = require('./lib/markdown-it');
 const utils = require('./utils');
 
-cheerio.prototype.options.xmlMode = true; // Enable xml mode for self-closing tag
-cheerio.prototype.options.decodeEntities = false; // Don't escape HTML entities
+// cheerio.prototype.options.xmlMode = true; // Enable xml mode for self-closing tag
+// cheerio.prototype.options.decodeEntities = false; // Don't escape HTML entities
 
 const ATTRIB_INCLUDE_PATH = 'include-path';
 const ATTRIB_CWF = 'cwf';
@@ -216,7 +216,7 @@ Parser.prototype._preprocess = function (node, context, config) {
     if (includeSrc.hash) {
       // directly get segment from the src
       const segmentSrc = cheerio.parseHTML(fileContent, true);
-      const $ = cheerio.load(segmentSrc);
+      const $ = cheerio.load(segmentSrc, { xmlMode: true, decodeEntities: false });
       const htmlContent = $(includeSrc.hash).html();
       let actualContent = htmlContent;
 
@@ -305,15 +305,13 @@ Parser.prototype._parse = function (node, context, config) {
   switch (element.name) {
   case 'md':
     element.name = 'span';
-    cheerio.prototype.options.xmlMode = false;
-    element.children = cheerio.parseHTML(md.renderInline(cheerio.html(element.children)), true);
-    cheerio.prototype.options.xmlMode = true;
+    element.children = cheerio.parseHTML(
+      md.renderInline(cheerio.html(element.children, { xmlMode: false, decodeEntities: false })), true);
     break;
   case 'markdown':
     element.name = 'div';
-    cheerio.prototype.options.xmlMode = false;
-    element.children = cheerio.parseHTML(md.render(cheerio.html(element.children)), true);
-    cheerio.prototype.options.xmlMode = true;
+    element.children = cheerio.parseHTML(
+      md.render(cheerio.html(element.children, { xmlMode: false, decodeEntities: false })), true);
     break;
   case 'panel': {
     if (!_.hasIn(element.attribs, 'src')) { // dynamic panel
@@ -389,7 +387,7 @@ Parser.prototype.includeFile = function (file, config) {
         }
         return processed;
       });
-      resolve(cheerio.html(nodes));
+      resolve(cheerio.html(nodes, { xmlMode: true, decodeEntities: false }));
     });
 
     const parser = new htmlparser.Parser(handler, {
@@ -453,9 +451,7 @@ Parser.prototype.renderFile = function (file, config) {
       nodes.forEach((d) => {
         this._trimNodes(d);
       });
-      cheerio.prototype.options.xmlMode = false;
-      resolve(cheerio.html(nodes));
-      cheerio.prototype.options.xmlMode = true;
+      resolve(cheerio.html(nodes, { xmlMode: false, decodeEntities: false }));
     });
 
     const parser = new htmlparser.Parser(handler, {
@@ -510,9 +506,7 @@ Parser.prototype.resolveBaseUrl = function (pageData, config) {
         }
         return this._rebaseReference(node, childrenBase);
       });
-      cheerio.prototype.options.xmlMode = false;
-      resolve(cheerio.html(nodes));
-      cheerio.prototype.options.xmlMode = true;
+      resolve(cheerio.html(nodes, { xmlMode: false, decodeEntities: false }));
     });
 
     const parser = new htmlparser.Parser(handler, {
@@ -560,16 +554,15 @@ Parser.prototype._rebaseReference = function (node, foundBase) {
         const currentBase = calculateNewBaseUrls(element.attribs[ATTRIB_CWF], this.rootPath, this.baseUrlMap);
         if (currentBase) {
           if (currentBase.relative !== newBase) {
-            cheerio.prototype.options.xmlMode = false;
             const newBaseUrl = `{{hostBaseUrl}}/${newBase}`;
-            const rendered = nunjucks.renderString(cheerio.html(children), {
-              // This is to prevent the nunjuck call from converting {{hostBaseUrl}} to an empty string
-              // and let the hostBaseUrl value be injected later.
-              hostBaseUrl: '{{hostBaseUrl}}',
-              baseUrl: newBaseUrl,
-            });
+            const rendered = nunjucks.renderString(
+              cheerio.html(children, { xmlMode: false, decodeEntities: false }), {
+                // This is to prevent the nunjuck call from converting {{hostBaseUrl}} to an empty string
+                // and let the hostBaseUrl value be injected later.
+                hostBaseUrl: '{{hostBaseUrl}}',
+                baseUrl: newBaseUrl,
+              });
             element.children = cheerio.parseHTML(rendered, true);
-            cheerio.prototype.options.xmlMode = true;
           }
         }
       }

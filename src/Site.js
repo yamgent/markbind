@@ -420,7 +420,7 @@ Site.prototype.collectUserDefinedVariablesMap = function () {
     userDefinedVariables.baseUrl = '{{baseUrl}}';
     this.userDefinedVariablesMap[base] = userDefinedVariables;
 
-    const $ = cheerio.load(content);
+    const $ = cheerio.load(content, { xmlMode: true, decodeEntities: false });
     $.root().children().each(function () {
       const id = $(this).attr('id');
       // Process the content of the variable with nunjucks, in case it refers to other variables.

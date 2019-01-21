@@ -43,8 +43,8 @@ const SITE_NAV_BUTTON_HTML = '<div id="site-nav-btn-wrap">\n'
   + '</div>\n'
   + '</div>';
 
-cheerio.prototype.options.xmlMode = true; // Enable xml mode for self-closing tag
-cheerio.prototype.options.decodeEntities = false; // Don't escape HTML entities
+// cheerio.prototype.options.xmlMode = true; // Enable xml mode for self-closing tag
+// cheerio.prototype.options.decodeEntities = false; // Don't escape HTML entities
 
 function Page(pageConfig) {
   this.asset = pageConfig.asset;
@@ -83,10 +83,10 @@ function Page(pageConfig) {
  */
 
 function addContentWrapper(pageData) {
-  const $ = cheerio.load(pageData);
+  const $ = cheerio.load(pageData, { xmlMode: true, decodeEntities: false });
   $(`#${CONTENT_WRAPPER_ID}`).removeAttr('id');
   return `<div id="${CONTENT_WRAPPER_ID}">\n\n`
-    + `${$.html()}\n`
+    + `${$.html({ xmlMode: true, decodeEntities: false })}\n`
     + '</div>';
 }
 
@@ -108,7 +108,7 @@ function calculateNewBaseUrl(filePath, root, lookUp) {
 }
 
 function formatFooter(pageData) {
-  const $ = cheerio.load(pageData);
+  const $ = cheerio.load(pageData, { xmlMode: true, decodeEntities: false });
   const footers = $('footer');
   if (footers.length === 0) {
     return pageData;
@@ -126,11 +126,11 @@ function formatFooter(pageData) {
   if (lastFooter.prev().attr('id') !== FLEX_DIV_ID) {
     $(lastFooter).before(FLEX_DIV_HTML);
   }
-  return $.html();
+  return $.html({ xmlMode: true, decodeEntities: false });
 }
 
 function formatSiteNav(renderedSiteNav) {
-  const $ = cheerio.load(renderedSiteNav);
+  const $ = cheerio.load(renderedSiteNav, { xmlMode: true, decodeEntities: false });
   const listItems = $.root().find('ul').first().children();
   if (listItems.length === 0) {
     return renderedSiteNav;
@@ -160,7 +160,8 @@ function formatSiteNav(renderedSiteNav) {
       if (dropdownTitle.toString().includes(DROPDOWN_EXPAND_KEYWORD)) {
         const expandKeywordRegex = new RegExp(DROPDOWN_EXPAND_KEYWORD, 'g');
         const dropdownTitleWithoutKeyword = dropdownTitle.toString().replace(expandKeywordRegex, '');
-        const rotatedIcon = cheerio.load(DROPDOWN_BUTTON_ICON_HTML, { xmlMode: false })('i')
+        const rotatedIcon = cheerio.load(
+          DROPDOWN_BUTTON_ICON_HTML, { xmlMode: false, decodeEntities: false })('i')
           .addClass('rotate-icon');
         nestedList.wrap('<div class="dropdown-container dropdown-container-open"></div>');
         $(this).prepend('<button class="dropdown-btn dropdown-btn-open">'
@@ -178,7 +179,7 @@ function formatSiteNav(renderedSiteNav) {
       nestedList.replaceWith(formatSiteNav(nestedList.parent().html()));
     }
   });
-  return $.html();
+  return $.html({ xmlMode: true, decodeEntities: false });
 }
 
 function unique(array) {
@@ -231,7 +232,7 @@ function getClosestHeading($, headingsSelector, element) {
  */
 Page.prototype.collectHeadingsAndKeywords = function () {
   this.headings = {}; // clear any heading data from previous build
-  const $ = cheerio.load(fs.readFileSync(this.resultPath));
+  const $ = cheerio.load(fs.readFileSync(this.resultPath), { xmlMode: true, decodeEntities: false });
   this.collectHeadingsAndKeywordsInContent($(`#${CONTENT_WRAPPER_ID}`).html(), null, false);
 };
 
@@ -252,7 +253,7 @@ function generateHeadingSelector(headingIndexingLevel) {
  * @param content that contains the headings and keywords
  */
 Page.prototype.collectHeadingsAndKeywordsInContent = function (content, lastHeading, excludeHeadings) {
-  let $ = cheerio.load(content);
+  let $ = cheerio.load(content, { xmlMode: true, decodeEntities: false });
   const headingsSelector = generateHeadingSelector(this.headingIndexingLevel);
   $('modal').remove();
   $('panel').not('panel panel')
@@ -288,7 +289,7 @@ Page.prototype.collectHeadingsAndKeywordsInContent = function (content, lastHead
 
         const includeContent = fs.readFileSync(includePath);
         if (panel.attribs.fragment) {
-          $ = cheerio.load(includeContent);
+          $ = cheerio.load(includeContent, { xmlMode: true, decodeEntities: false });
           this.collectHeadingsAndKeywordsInContent($(`#${panel.attribs.fragment}`).html(),
                                                    closestHeading, shouldExcludeHeadings);
         } else {
@@ -298,7 +299,7 @@ Page.prototype.collectHeadingsAndKeywordsInContent = function (content, lastHead
         this.collectHeadingsAndKeywordsInContent($(panel).html(), closestHeading, shouldExcludeHeadings);
       }
     });
-  $ = cheerio.load(content);
+  $ = cheerio.load(content, { xmlMode: true, decodeEntities: false });
   if (this.headingIndexingLevel > 0) {
     $('modal').remove();
     $('panel').remove();
@@ -350,14 +351,15 @@ Page.prototype.concatenateHeadingsAndKeywords = function () {
  * @param content of the page
  */
 Page.prototype.addAnchors = function (content) {
-  const $ = cheerio.load(content, { xmlMode: false });
+  const $ = cheerio.load(content, { xmlMode: false, decodeEntities: false });
   if (this.headingIndexingLevel > 0) {
     const headingsSelector = generateHeadingSelector(this.headingIndexingLevel);
     $(headingsSelector).each((i, heading) => {
       $(heading).append(ANCHOR_HTML.replace('#', `#${$(heading).attr('id')}`));
     });
     $('panel[header]').each((i, panel) => {
-      const panelHeading = cheerio.load(md.render(panel.attribs.header), { xmlMode: false });
+      const panelHeading = cheerio.load(
+        md.render(panel.attribs.header), { xmlMode: false, decodeEntities: false });
       if (panelHeading(headingsSelector).length >= 1) {
         const headingId = $(panelHeading(headingsSelector)[0]).attr('id');
         const anchorIcon = ANCHOR_HTML.replace(/"/g, "'").replace('#', `#${headingId}`);
@@ -365,7 +367,7 @@ Page.prototype.addAnchors = function (content) {
       }
     });
   }
-  return $.html();
+  return $.html({ xmlMode: true, decodeEntities: false });
 };
 
 /**
@@ -383,7 +385,7 @@ Page.prototype.collectIncludedFiles = function (dependencies) {
  * @param includedPage a page with its dependencies included
  */
 Page.prototype.collectFrontMatter = function (includedPage) {
-  const $ = cheerio.load(includedPage);
+  const $ = cheerio.load(includedPage, { xmlMode: true, decodeEntities: false });
   const frontMatter = $('frontmatter');
   if (frontMatter.text().trim()) {
     // Retrieves the front matter from either the first frontmatter element
@@ -417,10 +419,10 @@ Page.prototype.collectFrontMatter = function (includedPage) {
  * @param includedPage a page with its dependencies included
  */
 Page.prototype.removeFrontMatter = function (includedPage) {
-  const $ = cheerio.load(includedPage);
+  const $ = cheerio.load(includedPage, { xmlMode: true, decodeEntities: false });
   const frontMatter = $('frontmatter');
   frontMatter.remove();
-  return $.html();
+  return $.html({ xmlMode: true, decodeEntities: false });
 };
 
 /**
@@ -478,7 +480,7 @@ Page.prototype.insertSiteNav = function (pageData) {
   const userDefinedVariables = this.userDefinedVariablesMap[path.join(this.rootPath, newBaseUrl)];
   const siteNavMappedData = nunjucks.renderString(siteNavContent, userDefinedVariables);
   // Convert to HTML
-  const siteNavDataSelector = cheerio.load(siteNavMappedData);
+  const siteNavDataSelector = cheerio.load(siteNavMappedData, { xmlMode: true, decodeEntities: false });
   if (siteNavDataSelector('navigation').length > 1) {
     throw new Error(`More than one <navigation> tag found in ${siteNavPath}`);
   } else if (siteNavDataSelector('navigation').length === 1) {
@@ -520,7 +522,7 @@ Page.prototype.collectHeadFiles = function (baseUrl, hostBaseUrl) {
     const userDefinedVariables = this.userDefinedVariablesMap[path.join(this.rootPath, newBaseUrl)];
     const headFileMappedData = nunjucks.renderString(headFileContent, userDefinedVariables).trim();
     // Split top and bottom contents
-    const $ = cheerio.load(headFileMappedData, { xmlMode: false });
+    const $ = cheerio.load(headFileMappedData, { xmlMode: false, decodeEntities: false });
     if ($('head-top').length) {
       collectedTopContent.push(nunjucks.renderString($('head-top').html(), { baseUrl, hostBaseUrl })
         .trim()
@@ -528,10 +530,11 @@ Page.prototype.collectHeadFiles = function (baseUrl, hostBaseUrl) {
         .replace(/\n/g, '\n    '));
       $('head-top').remove();
     }
-    collectedBottomContent.push(nunjucks.renderString($.html(), { baseUrl, hostBaseUrl })
-      .trim()
-      .replace(/\n\s*\n/g, '\n')
-      .replace(/\n/g, '\n    '));
+    collectedBottomContent.push(
+      nunjucks.renderString($.html({ xmlMode: true, decodeEntities: false }), { baseUrl, hostBaseUrl })
+        .trim()
+        .replace(/\n\s*\n/g, '\n')
+        .replace(/\n/g, '\n    '));
   });
   this.headFileTopContent = collectedTopContent.join('\n    ');
   this.headFileBottomContent = collectedBottomContent.join('\n    ');
